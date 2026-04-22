@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AskYourDatabase - NLPQuery</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>AskYourDatabase</h1>
+                <p>Connect your database and start chatting with your data.</p>
+            </div>
+            
+            <div class="sidebar-content" id="sidebar-db-list">
+                <!-- Connect DB Form Card -->
+                <div class="sidebar-card form-card">
+                    <h3>Connect Database</h3>
+                    <div class="db-form">
+                        <input type="text" id="db-host" placeholder="Host (localhost)" value="localhost">
+                        <input type="number" id="db-port" placeholder="Port" value="5432">
+                        <input type="text" id="db-name" placeholder="DB Name">
+                        <input type="text" id="db-user" placeholder="User">
+                        <input type="password" id="db-password" placeholder="Password">
+                        <button id="connect-db-btn" class="primary-btn">Connect <span class="spinner hidden" id="db-spinner"></span></button>
+                    </div>
+                    <p id="db-error" class="error-text hidden"></p>
+                </div>
+                
+                <!-- Active DB Card -->
+                <div class="sidebar-card active-card hidden" id="active-db-card">
+                    <h3 id="active-db-title">Connected DB</h3>
+                    <p class="db-detail" id="active-db-detail">postgres@localhost</p>
+                    <p class="timestamp" id="active-db-time"></p>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="icon-btn">⚙️</button>
+                <span class="version">v1.1.63</span>
+                <button class="new-chat-btn" onclick="location.reload()">+ New Chat</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div>
+                    <h2>New Conversation</h2>
+                    <p class="msg-count" id="msg-count">0 messages</p>
+                </div>
+                <div class="model-selector">
+                    <span class="ai-icon">🤖</span>
+                    <select id="model-select">
+                        <option>local-model</option>
+                        <option>gpt-3.5</option>
+                        <option>gpt-4o-mini</option>
+                    </select>
+                </div>
+            </header>
+
+            <div class="chat-container" id="chat-container">
+                <div class="message bot-message">
+                    <div class="avatar bg-dark">🤖</div>
+                    <div class="msg-content">
+                        <div class="bubble">Hello! How can I assist you today? Please connect your database first.</div>
+                        <div class="time" id="init-time"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-box">
+                    <input type="text" id="question" placeholder="Enter to send" autocomplete="off">
+                    <button id="send-btn" class="send-btn">
+                        <span id="send-icon">↑</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
