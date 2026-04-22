@@ -2,8 +2,6 @@
 
 NLPQuery is a privacy-first, locally-hostable application that allows you to chat directly with your PostgreSQL database. Instead of writing complex SQL manually, you can ask questions in natural language, and NLPQuery will intelligently analyze your database schema, determine the intent, select the necessary tables, prune irrelevant columns, and generate the perfect SQL query.
 
-![AskYourDatabase Style UI](./static/style.css) 
-
 ## 🚀 Features
 
 - **Dynamic Database Connections**: Connect to any PostgreSQL database directly from the beautiful, modern UI.
