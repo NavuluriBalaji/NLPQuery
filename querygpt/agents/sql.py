@@ -21,6 +21,7 @@ from querygpt.models import (
     TableAgentOutput,
     TableSchema,
 )
+from querygpt.sql_validator import validate_sql
 
 logger = logging.getLogger(__name__)
 
@@ -187,10 +188,23 @@ Return only the columns needed. Return JSON.
 # ===========================================================================
 
 _SQL_SYSTEM = """\
-You are an expert SQL engineer. Generate a correct, efficient SQL query that
+You are an expert SQL engineer. Generate a correct, efficient SELECT query that
 answers the user's question using the provided table schemas and example queries.
 
-Rules:
+⚠️ CRITICAL SECURITY RULE:
+ONLY generate SELECT queries. You MUST NEVER generate:
+- INSERT statements
+- UPDATE statements
+- DELETE statements
+- TRUNCATE statements
+- DROP statements
+- ALTER statements
+- CREATE statements
+- EXEC/EXECUTE statements
+
+If the user asks for a write operation, refuse and suggest a SELECT query instead.
+
+Other Rules:
 - Use ONLY columns that exist in the provided schemas.
 - Prefer explicit JOINs over implicit comma joins.
 - Always alias tables for readability.
@@ -248,6 +262,17 @@ Generate the SQL query. Return JSON.
             sql = data.get("sql", "").strip()
             # Strip accidental markdown fences
             sql = re.sub(r"```sql|```", "", sql).strip()
+
+            # Validate SQL – reject write operations
+            is_valid, error_msg = validate_sql(sql)
+            if not is_valid:
+                logger.warning("SQLGeneratorAgent: Generated query blocked by validator: %s", error_msg)
+                return SQLGeneratorOutput(
+                    status=AgentStatus.ERROR,
+                    sql=None,
+                    explanation=None,
+                    error=error_msg,
+                )
 
             return SQLGeneratorOutput(
                 status=AgentStatus.SUCCESS,

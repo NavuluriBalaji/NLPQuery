@@ -12,7 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from querygpt.models import SQLSample, Workspace, WorkspaceType
+from querygpt.models import SQLSample, Workspace, WorkspaceType, TableSchema
+from querygpt.keyword_extractor import extract_keywords
 
 logger = logging.getLogger(__name__)
 
@@ -99,15 +100,52 @@ class WorkspaceManager:
         ws = self.get(workspace_name)
         return ws.table_names if ws else []
 
-    def assign_tables_by_keyword(self, table_full_name: str, description: str) -> None:
+    def assign_tables_by_keyword(
+        self, table_full_name: str, table: TableSchema | None = None, description: str = ""
+    ) -> None:
         """
-        Auto-assign a table to workspaces whose keywords match the description.
+        Auto-assign a table to workspaces using dynamic keyword extraction.
+        
+        Args:
+            table_full_name: The table's full name (schema.table)
+            table: TableSchema object for dynamic keyword extraction (preferred)
+            description: Legacy fallback if TableSchema not provided
+            
         Called during schema indexing for zero-config workspace assignment.
         """
-        desc_lower = description.lower()
+        # If TableSchema provided, use dynamic keyword extraction
+        if table:
+            extracted = extract_keywords(table)
+            suggested_workspaces = extracted.get("suggested_workspaces", [])
+            table_keywords = set(extracted.get("table_keywords", []))
+            domain_keywords = set(extracted.get("domain_keywords", []))
+            all_keywords = table_keywords | domain_keywords
+        else:
+            # Fallback to description-based matching (legacy)
+            all_keywords = set(description.lower().split())
+            suggested_workspaces = []
+
+        # Assign to matching workspaces
         for ws in self._workspaces.values():
-            if any(kw in desc_lower for kw in ws.keywords):
+            ws_keywords = set(ws.keywords)
+            
+            # Match if:
+            # 1. Workspace is in suggested_workspaces from keyword extractor, OR
+            # 2. Any extracted keywords match workspace keywords
+            if suggested_workspaces and ws.name in suggested_workspaces:
                 self.add_table_to_workspace(ws.name, table_full_name)
+                logger.debug(
+                    "Assigned %s to workspace '%s' (suggested)",
+                    table_full_name,
+                    ws.name,
+                )
+            elif ws_keywords & all_keywords:  # Set intersection
+                self.add_table_to_workspace(ws.name, table_full_name)
+                logger.debug(
+                    "Assigned %s to workspace '%s' (keyword match)",
+                    table_full_name,
+                    ws.name,
+                )
 
     # ------------------------------------------------------------------
     # Lookup helpers used by the pipeline

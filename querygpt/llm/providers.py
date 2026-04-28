@@ -121,6 +121,79 @@ class OpenAILLMProvider(LLMProvider):
 
 
 # ---------------------------------------------------------------------------
+# Google Gemini
+# ---------------------------------------------------------------------------
+
+class GeminiLLMProvider(LLMProvider):
+    """Wrapper around Google Gemini API."""
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gemini-2.0-flash",
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+    ) -> None:
+        try:
+            import google.generativeai as _genai
+        except ImportError as exc:
+            raise ImportError(
+                "Install google-generativeai: pip install google-generativeai"
+            ) from exc
+
+        _genai.configure(api_key=api_key)
+        self._client = _genai
+        self._model = model
+        self._default_max_tokens = max_tokens
+        self._default_temperature = temperature
+
+    def complete(
+        self,
+        messages: list[LLMMessage],
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        response_format: str = "text",
+    ) -> str:
+        # Separate system and user messages
+        system_msgs = [m for m in messages if m.role == "system"]
+        user_msgs = [m for m in messages if m.role != "system"]
+
+        system_str = "\n\n".join(m.content for m in system_msgs)
+
+        # Convert messages to Gemini format
+        history = []
+        for msg in user_msgs[:-1]:  # All but last
+            history.append(
+                {"role": "user" if msg.role == "user" else "model", "parts": msg.content}
+            )
+
+        # Last message
+        user_content = user_msgs[-1].content if user_msgs else ""
+
+        try:
+            model = self._client.GenerativeModel(
+                model_name=self._model,
+                system_instruction=system_str or "You are a helpful SQL expert.",
+                generation_config={
+                    "temperature": temperature
+                    if temperature is not None
+                    else self._default_temperature,
+                    "max_output_tokens": max_tokens or self._default_max_tokens,
+                    "response_mime_type": "application/json"
+                    if response_format == "json"
+                    else "text/plain",
+                },
+            )
+            chat = model.start_chat(history=history)
+            response = chat.send_message(user_content)
+            return response.text
+        except Exception as exc:
+            logger.error("Gemini API error: %s", exc)
+            raise LLMError(str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 
@@ -148,6 +221,7 @@ def build_llm_provider(provider: str, **kwargs) -> LLMProvider:
     registry: dict[str, type[LLMProvider]] = {
         "anthropic": AnthropicLLMProvider,
         "openai":    OpenAILLMProvider,
+        "gemini":    GeminiLLMProvider,
     }
     cls = registry.get(provider)
     if cls is None:

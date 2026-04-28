@@ -17,6 +17,9 @@ def build_pipeline(config: AppConfig) -> QueryGPTPipeline:
     elif config.llm.provider == "openai":
         llm_kwargs["api_key"] = config.llm.openai_api_key
         llm_kwargs["model"] = config.llm.model_openai
+    elif config.llm.provider == "gemini":
+        llm_kwargs["api_key"] = config.llm.gemini_api_key
+        llm_kwargs["model"] = config.llm.model_gemini
     elif config.llm.provider == "lmstudio":
         llm_kwargs["model"] = config.llm.model_lmstudio
     elif config.llm.provider == "ollama":

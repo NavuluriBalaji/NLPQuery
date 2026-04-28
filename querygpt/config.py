@@ -24,11 +24,13 @@ class DatabaseConfig:
 
 @dataclass(frozen=True)
 class LLMConfig:
-    provider: str = os.getenv("LLM_PROVIDER", "anthropic")   # "anthropic" | "openai" | "lmstudio" | "ollama"
+    provider: str = os.getenv("LLM_PROVIDER", "anthropic")   # "anthropic" | "openai" | "lmstudio" | "ollama" | "gemini"
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     model_anthropic: str = os.getenv("LLM_MODEL_ANTHROPIC", "claude-3-5-haiku-20241022")
     model_openai: str = os.getenv("LLM_MODEL_OPENAI", "gpt-4o-mini")
+    model_gemini: str = os.getenv("LLM_MODEL_GEMINI", "gemini-2.0-flash")
     model_lmstudio: str = os.getenv("LLM_MODEL_LMSTUDIO", "local-model")
     model_ollama: str = os.getenv("LLM_MODEL_OLLAMA", "llama3")
     max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "4096"))

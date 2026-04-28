@@ -17,6 +17,7 @@ try:
     from querygpt.factory import build_pipeline
     from querygpt.config import config
     from querygpt.models import QueryGPTRequest
+    from querygpt.sql_validator import validate_sql
     pipeline = build_pipeline(config)
     
     if config.vector_store.backend == "memory":
@@ -112,6 +113,21 @@ def run_query(req: QueryRequest):
         from querygpt.models import QueryGPTRequest
         gpt_req = QueryGPTRequest(question=req.question, workspace_hint=req.workspace)
         resp = pipeline.run(gpt_req)
+        
+        # Secondary validation layer – validate generated SQL
+        if resp.generated_sql:
+            is_valid, error_msg = validate_sql(resp.generated_sql)
+            if not is_valid:
+                return QueryResponse(
+                    question=resp.question,
+                    enhanced_question=resp.enhanced_question,
+                    matched_workspaces=resp.matched_workspaces,
+                    selected_tables=resp.selected_tables,
+                    generated_sql=None,
+                    explanation=None,
+                    error=error_msg
+                )
+        
         return QueryResponse(
             question=resp.question,
             enhanced_question=resp.enhanced_question,
