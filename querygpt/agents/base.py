@@ -6,6 +6,9 @@ Single Responsibility  – RAGIndex only handles embedding + retrieval orchestra
 """
 from __future__ import annotations
 
+import json
+import logging
+import re
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
@@ -29,6 +32,15 @@ class Agent(ABC, Generic[I, O]):
     @abstractmethod
     def run(self, input_: I) -> O:
         """Execute the agent and return a typed output."""
+
+    def _extract_json(self, text: str) -> str:
+        """Extract JSON from potential markdown code blocks."""
+        text = text.strip()
+        # Handle ```json ... ``` or ``` ... ```
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        return text
 
 
 # ---------------------------------------------------------------------------

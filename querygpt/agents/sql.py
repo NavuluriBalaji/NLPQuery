@@ -69,7 +69,7 @@ Select the required tables. Return JSON.
 """
         try:
             raw = self._llm.system_user(_TABLE_SYSTEM, user_msg, response_format="json")
-            data = json.loads(raw)
+            data = json.loads(self._extract_json(raw))
             selected_names: list[str] = data.get("selected_tables", [])
 
             # map names back to TableSchema objects
@@ -147,16 +147,27 @@ Return only the columns needed. Return JSON.
 """
         try:
             raw = self._llm.system_user(_PRUNE_SYSTEM, user_msg, response_format="json")
-            data = json.loads(raw)
+            data = json.loads(self._extract_json(raw))
             pruned_map: dict[str, list[str]] = data.get("pruned_schemas", {})
 
             pruned_tables = []
             for table in input_.selected_tables:
-                cols_to_keep = pruned_map.get(table.full_name)
+                # Be flexible: check for "schema.table" OR just "table" in the LLM response
+                cols_to_keep = pruned_map.get(table.full_name) or pruned_map.get(table.table_name)
+                
+                original_count = len(table.columns)
                 if cols_to_keep:
-                    pruned_tables.append(table.prune_columns(cols_to_keep))
+                    pruned = table.prune_columns(cols_to_keep)
+                    pruned_tables.append(pruned)
+                    logger.info(
+                        "Pruned table %s: %d -> %d columns",
+                        table.full_name,
+                        original_count,
+                        len(pruned.columns),
+                    )
                 else:
                     pruned_tables.append(table)  # keep original if not in response
+                    logger.info("Table %s not pruned (using all %d columns)", table.full_name, original_count)
 
             return ColumnPruneAgentOutput(
                 status=AgentStatus.SUCCESS,
@@ -246,7 +257,7 @@ Generate the SQL query. Return JSON.
 """
         try:
             raw = self._llm.system_user(_SQL_SYSTEM, user_msg, response_format="json")
-            data = json.loads(raw)
+            data = json.loads(self._extract_json(raw))
 
             sql = data.get("sql", "").strip()
             # Strip accidental markdown fences

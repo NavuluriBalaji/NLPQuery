@@ -63,7 +63,7 @@ Return JSON as specified.
 """
         try:
             raw = self._llm.system_user(_SYSTEM_PROMPT, user_msg, response_format="json")
-            data = json.loads(raw)
+            data = json.loads(self._extract_json(raw))
             return IntentAgentOutput(
                 status=AgentStatus.SUCCESS,
                 matched_workspaces=data.get("matched_workspaces", []),
