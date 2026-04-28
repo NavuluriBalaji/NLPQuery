@@ -32,9 +32,18 @@ class QueryGPTPipeline:
         self._table_cache: dict[str, TableSchema] = {}
 
     def index_tables_batch(self, tables: list[TableSchema], workspace: str | None = None):
+        """Index tables and auto-assign to workspaces using keyword extraction."""
         self.rag_index.index_schemas_batch(tables, workspace)
         for t in tables:
             self._table_cache[t.full_name] = t
+            
+            # Auto-assign table to workspaces based on dynamic keyword extraction
+            # If explicit workspace provided, use it; otherwise let keyword extractor decide
+            if workspace:
+                self.workspace_manager.add_table_to_workspace(workspace, t.full_name)
+            else:
+                # Dynamic keyword-based assignment
+                self.workspace_manager.assign_tables_by_keyword(t.full_name, table=t)
 
     def index_samples_batch(self, samples: list[SQLSample]):
         self.rag_index.index_samples_batch(samples)
