@@ -53,6 +53,7 @@ class QueryResponse(BaseModel):
     selected_tables: list[str] = []
     generated_sql: str | None = None
     explanation: str | None = None
+    follow_up_questions: list[str] = []
     error: str | None = None
 
 @app.get("/api/status")
@@ -119,6 +120,7 @@ def run_query(req: QueryRequest):
             selected_tables=resp.selected_tables,
             generated_sql=resp.generated_sql,
             explanation=resp.explanation,
+            follow_up_questions=resp.follow_up_questions,
             error=resp.error
         )
     except Exception as e:

@@ -60,6 +60,7 @@ class QueryGPTResponse:
     selected_tables: list[str] = field(default_factory=list)
     generated_sql: str | None = None
     explanation: str | None = None
+    follow_up_questions: list[str] = field(default_factory=list)
     error: str | None = None
 
 @dataclass
@@ -133,4 +134,5 @@ class SQLGeneratorOutput:
     status: AgentStatus
     sql: str | None
     explanation: str | None = None
+    follow_up_questions: list[str] = field(default_factory=list)
     error: str | None = None

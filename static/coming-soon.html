@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon - NLPQuery</title>
+    <link rel="stylesheet" href="style.css?v=4">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .coming-soon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            background: var(--bg-panel);
+            text-align: center;
+        }
+        .coming-soon-container h1 {
+            font-size: 3rem;
+            color: var(--brand);
+            margin-bottom: 1rem;
+        }
+        .coming-soon-container p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="coming-soon-container">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <h1>Coming Soon</h1>
+        <p>The Mail feature is currently under development. Check back soon!</p>
+        <button class="btn-primary" onclick="window.history.back()" style="padding: 0.75rem 2rem; font-size: 1rem; border-radius: 30px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Go Back
+        </button>
+    </div>
+</body>
+</html>

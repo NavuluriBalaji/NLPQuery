@@ -53,11 +53,42 @@ class QueryGPTPipeline:
         workspace_to_search = matched_ws[0] if matched_ws else req.workspace_hint
 
         # 2. RAG - Find candidate tables
+        # Search the matched workspace first with a higher top_k
         candidate_names = self.rag_index.search_schemas(
             query=enhanced_q,
-            top_k=5,
+            top_k=8,
             workspace=workspace_to_search
         )
+
+        # If we got fewer than 3 results (or no workspace match), also search globally
+        if len(candidate_names) < 3:
+            global_names = self.rag_index.search_schemas(
+                query=enhanced_q,
+                top_k=8,
+                workspace=None  # no filter = all schemas
+            )
+            # Merge, preserving order, deduplicating
+            seen = set(candidate_names)
+            for n in global_names:
+                if n not in seen:
+                    candidate_names.append(n)
+                    seen.add(n)
+
+        # Always also do a global search and append any missing tables
+        # This prevents cross-schema joins from failing
+        global_names = self.rag_index.search_schemas(
+            query=enhanced_q,
+            top_k=5,
+            workspace=None
+        )
+        seen = set(candidate_names)
+        for n in global_names:
+            if n not in seen:
+                candidate_names.append(n)
+                seen.add(n)
+
+        # Cap at top 12 to avoid overwhelming the LLM context
+        candidate_names = candidate_names[:12]
         
         candidate_tables = [self._table_cache[n] for n in candidate_names if n in self._table_cache]
 
@@ -96,5 +127,6 @@ class QueryGPTPipeline:
             selected_tables=[t.full_name for t in table_out.selected_tables],
             generated_sql=sql_out.sql,
             explanation=sql_out.explanation,
+            follow_up_questions=sql_out.follow_up_questions,
             error=sql_out.error
-        )
+        )

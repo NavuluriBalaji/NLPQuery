@@ -145,6 +145,11 @@ def build_llm_provider(provider: str, **kwargs) -> LLMProvider:
         kwargs.setdefault("supports_json_response_format", False)
         return OpenAILLMProvider(**kwargs)
 
+    if provider == "nvidia":
+        kwargs.setdefault("base_url", "https://integrate.api.nvidia.com/v1")
+        kwargs.setdefault("supports_json_response_format", False)
+        return OpenAILLMProvider(**kwargs)
+
     registry: dict[str, type[LLMProvider]] = {
         "anthropic": AnthropicLLMProvider,
         "openai":    OpenAILLMProvider,
@@ -153,6 +158,6 @@ def build_llm_provider(provider: str, **kwargs) -> LLMProvider:
     if cls is None:
         raise ValueError(
             f"Unknown LLM provider '{provider}'. "
-            f"Available: {list(registry.keys())} + ['lmstudio', 'ollama']"
+            f"Available: {list(registry.keys())} + ['lmstudio', 'ollama', 'nvidia']"
         )
     return cls(**kwargs)

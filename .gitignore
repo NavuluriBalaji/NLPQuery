@@ -1,0 +1,87 @@
+# ==============================================================
+#  NLPQuery / AskYourDatabase – .gitignore
+# ==============================================================
+
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.installed.cfg
+lib/
+lib64/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+
+# ── Virtual environments ─────────────────────────────────────
+ven/
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Environment / Secrets ────────────────────────────────────
+# NEVER commit API keys or DB passwords!
+.env
+.env.*
+!.env.example        # allow a safe example template to be committed
+
+# ── Pytest / Testing ─────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+nosetests.xml
+
+# ── MyPy / Type checking ─────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# ── Jupyter Notebooks ────────────────────────────────────────
+.ipynb_checkpoints
+
+# ── Scratch / Temp files ─────────────────────────────────────
+fix_followup.py
+scratch/
+tmp/
+*.tmp
+*.bak
+*.swp
+
+# ── IDE / Editor ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+.gemini/
+
+# ── OS artifacts ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Sentence Transformers / HuggingFace model cache ──────────
+# (downloaded automatically at runtime – don't commit large binaries)
+models/
+*.bin
+*.safetensors
+*.onnx
+sentence_transformers_cache/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/

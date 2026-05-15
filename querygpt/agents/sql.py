@@ -68,7 +68,7 @@ Select the required tables. Return JSON.
 """
         try:
             raw = self._llm.system_user(_TABLE_SYSTEM, user_msg, response_format="json")
-            data = json.loads(self._extract_json(raw))
+            data = json.loads(self._extract_json(raw), strict=False)
             selected_names: list[str] = data.get("selected_tables", [])
 
             # map names back to TableSchema objects
@@ -103,13 +103,17 @@ Select the required tables. Return JSON.
 
 _PRUNE_SYSTEM = """\
 You are a database schema optimizer. Given a user question and table schemas,
-return a pruned version of each schema containing ONLY the columns needed to
-answer the question.
+return a pruned version of each schema removing ONLY completely irrelevant columns.
 
 Always keep:
-- Primary key columns (even if not directly referenced).
+- Primary key columns.
 - Foreign key columns used for joins.
 - Columns explicitly or implicitly referenced in the question.
+- All identity/searchable columns like name, first_name, last_name, email, username, phone, status, type, role.
+- Columns related to dates/times if the question could involve timing (created_at, updated_at, login_at, etc.).
+
+Be CONSERVATIVE. When in doubt, keep the column.
+Only remove columns that are clearly irrelevant (e.g., internal audit fields like `updated_by_ip`, `raw_payload`, `blob_data`).
 
 Return ONLY valid JSON, no markdown, no explanations outside JSON.
 
@@ -146,10 +150,11 @@ Return only the columns needed. Return JSON.
 """
         try:
             raw = self._llm.system_user(_PRUNE_SYSTEM, user_msg, response_format="json")
-            data = json.loads(self._extract_json(raw))
+            data = json.loads(self._extract_json(raw), strict=False)
             pruned_map: dict[str, list[str]] = data.get("pruned_schemas", {})
 
             pruned_tables = []
+            MIN_COLUMNS = 5  # Safety floor: always keep at least 5 columns
             for table in input_.selected_tables:
                 # Be flexible: check for "schema.table" OR just "table" in the LLM response
                 cols_to_keep = pruned_map.get(table.full_name) or pruned_map.get(table.table_name)
@@ -157,13 +162,19 @@ Return only the columns needed. Return JSON.
                 original_count = len(table.columns)
                 if cols_to_keep:
                     pruned = table.prune_columns(cols_to_keep)
-                    pruned_tables.append(pruned)
-                    logger.info(
-                        "Pruned table %s: %d -> %d columns",
-                        table.full_name,
-                        original_count,
-                        len(pruned.columns),
-                    )
+                    # Safety: if pruning went too aggressive, fall back to original
+                    if len(pruned.columns) < MIN_COLUMNS and original_count > MIN_COLUMNS:
+                        logger.warning(
+                            "Pruning for %s was too aggressive (%d cols). Reverting to full schema.",
+                            table.full_name, len(pruned.columns)
+                        )
+                        pruned_tables.append(table)
+                    else:
+                        pruned_tables.append(pruned)
+                        logger.info(
+                            "Pruned table %s: %d -> %d columns",
+                            table.full_name, original_count, len(pruned.columns),
+                        )
                 else:
                     pruned_tables.append(table)  # keep original if not in response
                     logger.info("Table %s not pruned (using all %d columns)", table.full_name, original_count)
@@ -187,22 +198,35 @@ Return only the columns needed. Return JSON.
 # ===========================================================================
 
 _SQL_SYSTEM = """\
-You are an expert SQL engineer. Generate a correct, efficient SQL query that
-answers the user's question using the provided table schemas and example queries.
+You are an expert PostgreSQL SQL engineer. The target database is ALWAYS PostgreSQL.
+Generate a correct, efficient SQL query that answers the user's question using the
+provided table schemas and example queries.
 
 Rules:
 - Use ONLY columns that exist in the provided schemas.
+- Creatively map user terms to the actual column names (e.g., if user asks for "username" but the table has "email" or "name", use those).
 - Prefer explicit JOINs over implicit comma joins.
 - Always alias tables for readability.
 - Add meaningful column aliases in SELECT.
-- If filtering by date, use standard SQL date functions.
-- Do NOT invent table or column names.
+- If filtering by date, use standard PostgreSQL date functions (NOW(), CURRENT_DATE, etc.).
+- Do NOT invent table or column names. Only if the request is truly impossible to answer with the provided columns, provide an error explaining what is missing.
 - Return ONLY valid JSON, no markdown, no backticks.
+
+POSTGRESQL-SPECIFIC RULES (CRITICAL):
+- NEVER use MySQL-specific functions or columns. Specifically FORBIDDEN:
+  - `information_schema.tables.TABLE_ROWS`  → use `pg_class.reltuples::bigint` instead
+  - `GROUP_CONCAT()`                         → use `STRING_AGG()` instead
+  - `IFNULL()`                               → use `COALESCE()` instead
+  - `LIMIT x OFFSET y` with comma syntax    → always use `LIMIT x OFFSET y`
+  - Backtick identifiers                     → use double-quotes e.g. "column_name"
+- For row count estimates, use: `SELECT reltuples::bigint FROM pg_class WHERE relname = 'table_name'`
 
 Response format:
 {
   "sql": "SELECT ...",
-  "explanation": "Step-by-step reasoning ..."
+  "explanation": "Plain English explanation of what this SQL does, step-by-step, suitable for a non-technical user.",
+  "follow_up_questions": ["Suggested follow-up question 1?", "Suggested follow-up question 2?", "Suggested follow-up question 3?"],
+  "error": null
 }
 """
 
@@ -243,17 +267,24 @@ Generate the SQL query. Return JSON.
 """
         try:
             raw = self._llm.system_user(_SQL_SYSTEM, user_msg, response_format="json")
-            data = json.loads(self._extract_json(raw))
+            data = json.loads(self._extract_json(raw), strict=False)
 
-            sql = data.get("sql", "").strip()
-            # Strip accidental markdown fences
-            sql = re.sub(r"```sql|```", "", sql).strip()
+            sql = data.get("sql")
+            if sql:
+                sql = sql.strip()
+                # Strip accidental markdown fences
+                sql = re.sub(r"```sql|```", "", sql).strip()
+
+            error_msg = data.get("error")
 
             return SQLGeneratorOutput(
-                status=AgentStatus.SUCCESS,
+                status=AgentStatus.ERROR if error_msg else AgentStatus.SUCCESS,
                 sql=sql,
                 explanation=data.get("explanation"),
+                follow_up_questions=data.get("follow_up_questions", []),
+                error=error_msg
             )
+
         except Exception as exc:
             logger.error("SQLGeneratorAgent failed: %s", exc)
             return SQLGeneratorOutput(
