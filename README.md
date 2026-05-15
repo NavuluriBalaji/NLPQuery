@@ -1,6 +1,10 @@
 # Text2Query (AskYourDatabase Clone)
 
+<<<<<<< HEAD
+NLPQuery is a privacy-first, locally-hostable application that allows you to chat directly with your PostgreSQL database. Instead of writing complex SQL manually, you can ask questions in natural language, and NLPQuery will intelligently analyze your database schema, determine the intent, select the necessary tables, prune irrelevant columns, and generate the perfect SQL query.
+=======
 Text2Query is a privacy-first, locally-hostable application that allows you to chat directly with your PostgreSQL database. Instead of writing complex SQL manually, you can ask questions in natural language, and NLPQuery will intelligently analyze your database schema, determine the intent, select the necessary tables, prune irrelevant columns, and generate the perfect SQL query.
+>>>>>>> 7e241059f8586fc5b3a9038a4fa2a496bd6ca4d0
 
 ## 🚀 Features
 
