@@ -169,6 +169,34 @@ class PostgresConnector(DatabaseConnector):
         )
         return rows
 
+    def describe_foreign_keys(
+            self,
+            table: str,
+            schema: str = "public"
+    ) -> list[dict[str, Any]]:
+        rows = self.execute(
+            """
+            SELECT
+                kcu.column_name AS column_name,
+                ccu.table_name AS referenced_table,
+                ccu.column_name AS referenced_column
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage ccu
+                ON ccu.constraint_name = tc.constraint_name
+                AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND tc.table_name = %s
+              AND tc.table_schema = %s
+            """,
+            (table, schema),
+            fetch=True,
+        )
+
+        return rows
+
     def ping(self) -> bool:
         try:
             self.execute("SELECT 1", fetch=True)

@@ -77,6 +77,14 @@ class DatabaseConnector(ABC):
         Each dict should contain at least: name, data_type, nullable.
         """
 
+    @abstractmethod
+    def describe_foreign_keys(
+            self,
+            table: str,
+            schema: str = "public"
+    ) -> list[dict[str, Any]]:
+        """Return foreign key metadata for schema.table."""
+
     # ------------------------------------------------------------------
     # Health
     # ------------------------------------------------------------------

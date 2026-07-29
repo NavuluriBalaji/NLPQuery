@@ -127,23 +127,40 @@
     </div>
 
     <!-- DB Connect Modal -->
-    <div class="modal-overlay hidden" id="db-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Connect Database</h2>
-                <button class="close-modal" id="close-db-modal">✕</button>
-            </div>
-            <div class="db-form">
-                <input type="text" id="db-host" placeholder="Host (localhost)" value="localhost">
-                <input type="number" id="db-port" placeholder="Port" value="5432">
-                <input type="text" id="db-name" placeholder="DB Name">
-                <input type="text" id="db-user" placeholder="User">
-                <input type="password" id="db-password" placeholder="Password">
-                <button id="connect-db-btn" class="btn-primary w-full">Connect <span class="spinner hidden" id="db-spinner"></span></button>
-                <p id="db-error" class="error-text hidden"></p>
-            </div>
+<div class="modal-overlay hidden" id="db-modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h2>Connect Database</h2>
+            <button id="close-db-modal">&times;</button>
         </div>
+
+        <div class="db-form">
+
+            <select id="db-engine">
+                <option value="postgres">PostgreSQL</option>
+                <option value="oracle">Oracle</option>
+            </select>
+
+            <input type="text" id="db-host" placeholder="Host (localhost)" value="localhost">
+            <input type="number" id="db-port" placeholder="Port" value="5432">
+            <input type="text" id="db-name" placeholder="Database Name">
+            <input type="text" id="db-user" placeholder="Username">
+            <input type="password" id="db-password" placeholder="Password">
+
+            <button id="connect-db-btn" class="btn-primary w-full">
+                Connect
+                <span class="spinner hidden" id="db-spinner"></span>
+            </button>
+
+            <p id="db-error" class="error-text hidden"></p>
+
+        </div>
+
     </div>
+
+</div>
 
     <script src="script.js?v=4"></script>
 </body>

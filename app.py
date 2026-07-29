@@ -36,6 +36,7 @@ app = FastAPI(title="QueryGPT UI")
 connected_db_name = None
 
 class ConnectDBRequest(BaseModel):
+    engine: str = "postgres"   # Default for backward compatibility
     host: str
     port: int
     name: str
@@ -67,7 +68,7 @@ def connect_db(req: ConnectDBRequest):
         raise HTTPException(status_code=500, detail="Backend pipeline is not initialized.")
     try:
         from querygpt.config import DatabaseConfig
-        from querygpt.db.postgres import PostgresConnector
+        from querygpt.db.connector_factory import build_database_connector
         from querygpt.db.schema_loader import SchemaLoader
         
         db_cfg = DatabaseConfig(
@@ -77,7 +78,12 @@ def connect_db(req: ConnectDBRequest):
             user=req.user,
             password=req.password
         )
-        connector = PostgresConnector(db_cfg)
+
+        connector = build_database_connector(
+            engine=req.engine,
+            config=db_cfg
+        )
+
         connector.connect()
         loader = SchemaLoader(connector)
         

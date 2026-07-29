@@ -307,6 +307,7 @@ document.getElementById('connect-db-btn').addEventListener('click', async () => 
     const name = document.getElementById('db-name').value;
     const user = document.getElementById('db-user').value;
     const password = document.getElementById('db-password').value;
+    const engine = document.getElementById('db-engine').value;
     const errText = document.getElementById('db-error');
     const spinner = document.getElementById('db-spinner');
     
@@ -324,7 +325,7 @@ document.getElementById('connect-db-btn').addEventListener('click', async () => 
         const res = await fetch('/api/connect_db', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ host, port: parseInt(port), name, user, password })
+            body: JSON.stringify({engine, host, port: parseInt(port), name, user, password })
         });
         const data = await res.json();
         

@@ -73,6 +73,15 @@ class RAGIndex:
 
     def index_schema(self, table: TableSchema, workspace: str | None = None) -> None:
         content = f"Table: {table.full_name}\n{table.to_ddl()}"
+
+        if table.foreign_keys:
+            fk_lines = [
+                f"{fk.column_name} -> {fk.referenced_table}.{fk.referenced_column}"
+                for fk in table.foreign_keys
+            ]
+
+            content += "\n\nRelationships:\n"
+            content += "\n".join(fk_lines)
         if table.description:
             content = f"{table.description}\n{content}"
         doc = EmbeddedDocument(

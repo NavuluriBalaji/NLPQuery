@@ -11,7 +11,7 @@ import logging
 from typing import Optional
 
 from querygpt.db.base import DatabaseConnector
-from querygpt.models import ColumnInfo, TableSchema
+from querygpt.models import ColumnInfo, TableSchema, ForeignKeyInfo
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class SchemaLoader:
         """Load a single table schema. Returns None if the table doesn't exist."""
         try:
             raw_cols = self._db.describe_table(table, schema)
+            raw_fks = self._db.describe_foreign_keys(table, schema)
         except Exception as exc:
             logger.warning("Could not describe %s.%s: %s", schema, table, exc)
             return None
@@ -44,10 +45,20 @@ class SchemaLoader:
             for row in raw_cols
         ]
 
+        foreign_keys = [
+            ForeignKeyInfo(
+                column_name=fk["column_name"],
+                referenced_table=fk["referenced_table"],
+                referenced_column=fk["referenced_column"]
+            )
+            for fk in raw_fks
+        ]
+
         return TableSchema(
             table_name=table,
             schema_name=schema,
             columns=columns,
+            foreign_keys=foreign_keys,
         )
 
     def load_all_tables(self, schema: str = "public") -> list[TableSchema]:

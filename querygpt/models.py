@@ -16,11 +16,20 @@ class ColumnInfo:
     is_primary_key: bool = False
 
 @dataclass
+class ForeignKeyInfo:
+    column_name: str
+    referenced_table: str
+    referenced_column: str
+
+@dataclass
 class TableSchema:
     table_name: str
     schema_name: str
     description: str = ""
     columns: list[ColumnInfo] = field(default_factory=list)
+
+    # NEW
+    foreign_keys: list[ForeignKeyInfo] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:
@@ -36,7 +45,8 @@ class TableSchema:
             table_name=self.table_name,
             schema_name=self.schema_name,
             description=self.description,
-            columns=cols
+            columns=cols,
+            foreign_keys=self.foreign_keys
         )
 
 @dataclass

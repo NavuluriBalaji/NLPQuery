@@ -56,6 +56,7 @@ class TableAgent(Agent[TableAgentInput, TableAgentOutput]):
         self._llm = llm
 
     def run(self, input_: TableAgentInput) -> TableAgentOutput:
+        logger.info("TableAgent: Evaluating %d candidate tables for question: '%s'", len(input_.candidate_tables), input_.enhanced_question)
         schemas_block = "\n\n".join(t.to_ddl() for t in input_.candidate_tables)
 
         user_msg = f"""\
@@ -81,8 +82,11 @@ Select the required tables. Return JSON.
 
             # fallback: return all candidates if LLM gave nonsense
             if not selected:
+                logger.warning("TableAgent: LLM returned no valid tables. Falling back to top %d candidates.", input_.top_k)
                 selected = input_.candidate_tables[: input_.top_k]
 
+            logger.info("TableAgent: Selected %d tables: %s", len(selected), [t.full_name for t in selected])
+            
             return TableAgentOutput(
                 status=AgentStatus.SUCCESS,
                 selected_tables=selected,
@@ -138,6 +142,7 @@ class ColumnPruneAgent(Agent[ColumnPruneAgentInput, ColumnPruneAgentOutput]):
         self._llm = llm
 
     def run(self, input_: ColumnPruneAgentInput) -> ColumnPruneAgentOutput:
+        logger.info("ColumnPruneAgent: Pruning columns for %d tables", len(input_.selected_tables))
         schemas_block = "\n\n".join(t.to_ddl() for t in input_.selected_tables)
 
         user_msg = f"""\
@@ -165,19 +170,19 @@ Return only the columns needed. Return JSON.
                     # Safety: if pruning went too aggressive, fall back to original
                     if len(pruned.columns) < MIN_COLUMNS and original_count > MIN_COLUMNS:
                         logger.warning(
-                            "Pruning for %s was too aggressive (%d cols). Reverting to full schema.",
+                            "ColumnPruneAgent: Pruning for %s was too aggressive (%d cols). Reverting to full schema.",
                             table.full_name, len(pruned.columns)
                         )
                         pruned_tables.append(table)
                     else:
                         pruned_tables.append(pruned)
                         logger.info(
-                            "Pruned table %s: %d -> %d columns",
+                            "ColumnPruneAgent: Pruned table %s: %d -> %d columns",
                             table.full_name, original_count, len(pruned.columns),
                         )
                 else:
                     pruned_tables.append(table)  # keep original if not in response
-                    logger.info("Table %s not pruned (using all %d columns)", table.full_name, original_count)
+                    logger.info("ColumnPruneAgent: Table %s not pruned (using all %d columns)", table.full_name, original_count)
 
             return ColumnPruneAgentOutput(
                 status=AgentStatus.SUCCESS,
@@ -241,6 +246,7 @@ class SQLGeneratorAgent(Agent[SQLGeneratorInput, SQLGeneratorOutput]):
         self._llm = llm
 
     def run(self, input_: SQLGeneratorInput) -> SQLGeneratorOutput:
+        logger.info("SQLGeneratorAgent: Generating SQL for question: '%s'", input_.enhanced_question)
         schemas_block = "\n\n".join(t.to_ddl() for t in input_.pruned_tables)
 
         samples_block = ""
@@ -276,6 +282,12 @@ Generate the SQL query. Return JSON.
                 sql = re.sub(r"```sql|```", "", sql).strip()
 
             error_msg = data.get("error")
+
+            if error_msg:
+                logger.error("SQLGeneratorAgent: LLM returned error: %s", error_msg)
+            else:
+                logger.info("SQLGeneratorAgent: Successfully generated SQL")
+                logger.debug("SQLGeneratorAgent: Generated SQL: %s", sql)
 
             return SQLGeneratorOutput(
                 status=AgentStatus.ERROR if error_msg else AgentStatus.SUCCESS,

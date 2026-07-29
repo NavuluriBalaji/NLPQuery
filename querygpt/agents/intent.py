@@ -50,6 +50,7 @@ class IntentAgent(Agent[IntentAgentInput, IntentAgentOutput]):
         self._llm = llm
 
     def run(self, input_: IntentAgentInput) -> IntentAgentOutput:
+        logger.info("IntentAgent: Processing user question: '%s'", input_.user_question)
         workspaces_str = "\n".join(f"- {w}" for w in input_.available_workspaces)
 
         user_msg = f"""\
@@ -64,10 +65,17 @@ Return JSON as specified.
         try:
             raw = self._llm.system_user(_SYSTEM_PROMPT, user_msg, response_format="json")
             data = json.loads(self._extract_json(raw), strict=False)
+            
+            matched = data.get("matched_workspaces", [])
+            enhanced = data.get("enhanced_question", input_.user_question)
+            
+            logger.info("IntentAgent: Matched workspaces: %s", matched)
+            logger.info("IntentAgent: Enhanced question: '%s'", enhanced)
+            
             return IntentAgentOutput(
                 status=AgentStatus.SUCCESS,
-                matched_workspaces=data.get("matched_workspaces", []),
-                enhanced_question=data.get("enhanced_question", input_.user_question),
+                matched_workspaces=matched,
+                enhanced_question=enhanced,
                 reasoning=data.get("reasoning"),
             )
         except Exception as exc:
